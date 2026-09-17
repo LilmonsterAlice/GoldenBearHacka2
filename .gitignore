@@ -2,4 +2,10 @@
 __pycache__/
 *.py[cod]
 .streamlit/secrets.toml
-generated/*
+.pytest_cache/
+.DS_Store
+/data/
+/generated/
+.env
+.env.*
+!.env.example
