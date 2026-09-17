@@ -35,7 +35,7 @@ def create_app(settings: Settings | None = None, *, chat_service: ChatService | 
             del app.state.chat_service
 
     app = FastAPI(
-        title="CutScope Product API",
+        title="MantisGrid GPU Usage Analytics API",
         version="0.3.0",
         description="Stored analysis and optional AI Copilot. Default development data is synthetic.",
         lifespan=lifespan,

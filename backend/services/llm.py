@@ -13,7 +13,7 @@ from backend.services.featherless_client import FeatherlessClient, FeatherlessEr
 from backend.services.grounding import grounded_references, validate_generated_claims
 
 
-GPU_SYSTEM_PROMPT = """You are a helpful assistant embedded in the CutScope dashboard.
+GPU_SYSTEM_PROMPT = """You are a helpful assistant embedded in the MantisGrid GPU Usage Analytics dashboard.
 The application has already classified this question as GPU-related. Set
 gpu_related=true. Answer using only the supplied stored analysis
 and evidence, focusing on recoverability, evidence, and the cost if the policy is
@@ -26,7 +26,7 @@ Do not use Markdown fences or add other fields."""
 
 
 GENERAL_SYSTEM_PROMPT = """You are a helpful general assistant embedded in the
-CutScope dashboard. The application has already classified this question as not GPU-related.
+MantisGrid GPU Usage Analytics dashboard. The application has already classified this question as not GPU-related.
 Answer the user's actual question normally. Do not mention GPUs,
 Idle Interactive, recoverability, dashboard evidence, or savings unless the user
 asks about them. Set gpu_related=false. Set risk and recommendation to concise
@@ -36,7 +36,7 @@ Return exactly one JSON object with four fields:
 Do not use Markdown fences or add other fields."""
 
 
-CAPABILITY_SYSTEM_PROMPT = """You are the AI Copilot for CutScope, a dashboard
+CAPABILITY_SYSTEM_PROMPT = """You are the AI Copilot for MantisGrid GPU Usage Analytics, a dashboard
 that helps a CFO investigate GPU-cluster capacity and spending. The user is asking
 what this project can do. Briefly explain that you can:
 - explain potentially recoverable GPU capacity and dollar/GPU-hour ranges;
@@ -178,12 +178,12 @@ async def answer_chat(*, question: str, context: ChatContext) -> ChatResponse:
         if _is_greeting(question):
             answer, risk, recommendation = (
                 "Hello! How can I help?", "Not applicable.",
-                "Ask about a CutScope opportunity or another topic.",
+                "Ask about a MantisGrid GPU usage opportunity or another topic.",
             )
         elif _is_capability_question(question):
             answer, risk, recommendation = (
-                "I can explain CutScope's GPU opportunities, evidence, savings ranges, and policy risks.",
-                "Not applicable.", "Ask about one of the four CutScope opportunities.",
+                "I can explain MantisGrid GPU Usage Analytics opportunities, evidence, savings ranges, and policy risks.",
+                "Not applicable.", "Ask about one of the four GPU usage opportunities.",
             )
         else:
             answer, risk, recommendation = (
@@ -196,7 +196,7 @@ async def answer_chat(*, question: str, context: ChatContext) -> ChatResponse:
 
     if client.configured:
         if _is_capability_question(question):
-            provider_context = {"question": question, "product": "CutScope"}
+            provider_context = {"question": question, "product": "MantisGrid GPU Usage Analytics"}
             system_prompt = CAPABILITY_SYSTEM_PROMPT
         elif gpu_related:
             provider_context = {

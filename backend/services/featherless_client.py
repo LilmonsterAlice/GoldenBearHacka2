@@ -42,7 +42,7 @@ class FeatherlessClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://github.com/LilmonsterAlice/GoldenBearHacka2",
-            "X-Title": "CutScope",
+            "X-Title": "MantisGrid GPU Usage Analytics",
         }
         payload = {
             "model": self.model,
