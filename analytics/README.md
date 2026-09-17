@@ -31,7 +31,17 @@ The tracked notebook is an output-free source template. Clear outputs before
 committing, or save executed copies under ignored `generated/` or
 `analytics/notebooks/local/`. Official data and derived outputs stay local.
 
-## Generate the first backend snapshot
+## Investigate the idle opportunity
+
+```bash
+.venv/bin/python -m jupyterlab analytics/notebooks/02_idle_interactive.ipynb
+```
+
+This notebook inspects representative sessions, exclusions, primary ownership,
+low/point/high modeled reclaim, policy sensitivity, and hypothetical replay
+cost. Both notebooks remain output-free source templates.
+
+## Generate the backend snapshot
 
 ```bash
 .venv/bin/python -m analytics.build_analysis
@@ -44,11 +54,24 @@ Optional arguments:
 .venv/bin/python -m analytics.build_analysis --data-dir ~/Desktop/hackathon-2026-official --price 2.50 --price-book-version cutscope-assumption-v1
 ```
 
-This first stage exports the existing `summary`, `opportunities`, `jobs`, and
-`metadata` envelope. `opportunities` and `jobs` are deliberately empty: no
-recoverability, risk pricing, or interval attribution has been established yet.
-Metadata contains provenance, quality diagnostics, and overlapping candidate
-cohort consumption. Backend APIs do not expose this producer metadata.
+The exporter uses the existing `summary`, `opportunities`, `jobs`, and
+`metadata` envelope. It now includes one `idle-interactive` opportunity, every
+affected job record, and original finding evidence. Point estimates, policy
+parameters, exclusions, replay sensitivity and the primary ledger live in
+metadata. Backend APIs do not expose that producer metadata; method text also
+explains the point estimate and assumption.
+
+Defaults retain four hours per allocation and assume 50% realization for the
+point scenario. Low is zero guaranteed reclaim; high assumes all eligible
+modeled budget is reclaimed. These are explicit, uncalibrated scenarios, not
+measured savings or statistical confidence intervals. Change them with:
+
+```bash
+.venv/bin/python -m analytics.build_analysis --idle-retained-hours 8 --idle-point-realization 0.25 --output generated/analysis.sensitivity.json
+```
+
+Actual downside dollars and confidence remain null. Hypothetical replay cost
+is shown separately; it does not price engineer time or bound business loss.
 
 The default $2.50/GPU-hour is an explicit scenario assumption, not an official
 cloud price, verified bill, or cash-savings claim. All headline calculations
@@ -58,7 +81,7 @@ a comparison with a separately labeled known subtotal and missing count.
 ## Verification
 
 ```bash
-.venv/bin/python -m pytest analytics/tests/test_baseline.py -q
+.venv/bin/python -m pytest analytics/tests -q
 .venv/bin/python ~/Desktop/hackathon-2026-official/track-2/scripts/checksum_data.py
 ```
 
@@ -69,9 +92,9 @@ files, including resource and edge tables that this baseline does not consume.
 
 ## Next milestone
 
-Use the notebook to inspect idle candidates and duration anomalies. Document
-an intervention policy and evidence limitations, implement low/point/high
-reclaim and cost-if-wrong, and test primary attribution before exporting a real
-`idle-interactive` opportunity. Other opportunity modules remain unimplemented.
+Review the policy with operational feedback and inspect the other opportunities.
+Expand GPU-not-needed, slow cancel and card imbalance through the same primary
+ledger; whole-job ownership currently prevents overlap conservatively. Their
+modules remain unimplemented. No enforcement is deployed by this analysis.
 Keep the shared API unchanged; review any required field change with Persons
 2 and 5.

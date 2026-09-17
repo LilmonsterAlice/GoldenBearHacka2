@@ -15,10 +15,10 @@ file begins with the non-negotiable rules agreed by the team:
 9. Savings outputs include low/point/high, confidence, basis, and caveats.
 10. Every result describes the four-month workload sample.
 
-## First method to document
+## First opportunity
 
-`idle-interactive-session`: Person 1 will add its exact inclusion rules,
-deduplication priority, interval interpretation, and cost-if-wrong assumptions.
+`idle-interactive-session`: baseline identification and the v2 policy model are
+documented below. The API opportunity ID remains `idle-interactive`.
 
 ## analytics2 baseline v1
 
@@ -82,15 +82,86 @@ jobs' full measured consumption, NOT recoverable hours or rule impact. In
 particular, imbalance cohort totals include busy cards. Pairwise job overlap
 is reported; no additive opportunity savings total is generated.
 
-### Current limits and next stage
+## analytics2 idle policy model v2
 
-The first snapshot is summary-only with candidate diagnostics in producer
-metadata. Opportunities and job drill-down exports remain empty. Low/point/high
-savings, confidence scores, cost-if-wrong, and primary interval attribution are
-not implemented. The summary tables cannot locate an exact idle start or
-support a timestamped timeout simulation. Those models require explicit policy
-assumptions and a documented evidence basis before any opportunity is exported.
+### Inclusion and exclusion
 
-No shared API fields or endpoints are changed by this baseline. Producer-only
-information stays in metadata. Point estimates will need metadata storage or an
-agreed contract extension when the scenario implementation begins.
+Start with the 906 recomputed official idle candidates. Require a matching
+explicitly non-synthetic idle finding; zero job SM mean and peak; zero peak on
+every physical GPU; exactly one scheduler attempt; positive finite measured
+hours, final-walltime allocation hours, walltime and GPU count; complete card
+counts and valid card consumption. Scheduler allocation must equal
+`gpu_count * walltime_sec / 3600`. Measured/scheduler discrepancy must be within
+10%; each card's measured hours must not exceed final walltime by more than 10%.
+The tolerance can be tightened, but not widened above 10%.
+
+Final state is not an inclusion rule: useful CPU-only work may complete with
+zero GPU compute. This cohort is a policy-review target, not proof of abandonment.
+Missing qualifying evidence is excluded with a recorded reason; multiple
+exclusion reasons can apply to the same job.
+
+### Policy scenarios
+
+Default retained period `G=4` hours and point realization `R=0.5` are explicit
+uncalibrated assumptions. For job measured hours `M`, scheduler allocation
+hours `A`, and GPU count `N`:
+
+```text
+high  = max(0, min(M, A) - N * G)
+point = R * high
+low   = 0
+```
+
+Only jobs with positive high budget enter the affected-reference list. Sum
+these allocation budgets, never finding impacts. Low is zero because actual
+reclaim is not guaranteed. High assumes every modeled budget is reclaimed;
+point assumes half by default. These are not confidence intervals, empirically
+calibrated forecasts, or provider-bill savings. USD is resource value at the
+snapshot rate. Numeric confidence remains null: upstream detector confidence
+in a symptom does not measure recoverability probability.
+
+The retained period defines a hypothetical session-cap window after `G` hours
+from session start, not an observed idle interval. The dataset does not reveal
+an idle onset or permit a timestamped idle-timeout simulation. The assumed
+realization fraction represents opt-outs, legitimate work, and policy adoption
+collectively; none of those factors is measured here. Warning-only pilots and
+review of legitimate CPU work must precede enforcement.
+
+### Primary attribution and evidence
+
+The ledger records one primary `idle-interactive` owner per eligible job, its
+allocation budget, modeled elapsed window, low/point/high hours and supporting
+finding IDs. Entire-job ownership is conservative: future opportunities on
+that same job must remain supporting evidence unless a reviewed method can
+demonstrate disjoint physical allocations. A duplicate primary assignment or
+scenario exceeding its job budget raises an error. No observed timestamped
+physical interval is claimed from the modeled window.
+
+Retain all original job findings, including overlapping GPU-not-needed and
+slow-cancel evidence. They do not create extra priced hours. Affected jobs are
+ordered by high modeled budget descending, then ID; every reference resolves
+to an exported full job record. Price job evidence using its original measured
+consumption, so evidence cost and modeled reclaim cost remain distinct.
+
+### Cost if wrong and rollback
+
+Actual cost-if-wrong low/high USD remains null because interruption frequency,
+CPU work loss, engineer time and business consequences are unmeasured. Producer
+metadata shows an explicitly hypothetical sensitivity: replay 0%, 1%, 5%, 10%
+or 100% of eligible measured consumption once, at identical GPU cost. Fractions
+are consumption-weighted, not observed false-positive job rates. This is not a
+business-loss bound, and GPU-only replay can miss the main harm to CPU work.
+
+Start warning-only, provide extensions and opt-outs, review useful CPU-only
+work, check checkpoint persistence, pilot a small cohort, and disable enforcement
+when legitimate work is interrupted. `reversible=false` reflects that rolling
+back the policy cannot restore unsaved session state. Medium risk is a qualitative
+policy judgment, not an empirically estimated loss rate.
+
+### Integration
+
+The existing API fields now contain low/high modeled values, null actual confidence
+and downside USD, method/basis/caveats, complete job references and findings.
+Structured point values, policy parameters, exclusions, replay sensitivity and
+the ledger live in file-only metadata; method text also states the point
+assumption and result. No shared API fields or endpoints have changed.
