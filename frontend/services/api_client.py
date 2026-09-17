@@ -68,7 +68,7 @@ def post_chat(
     *,
     opportunity_id: str | None = None,
     job_id: int | None = None,
-    timeout: float = 10.0,
+    timeout: float = 30.0,
 ) -> dict[str, Any]:
     """Send one question to POST /api/chat and return its JSON response."""
     payload: dict[str, Any] = {"question": question}
