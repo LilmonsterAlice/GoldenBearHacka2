@@ -17,6 +17,30 @@ health, read-only mount, and Person 5's Compose adoption checklist.
 
 ## Local startup
 
+### Merged analytics connection
+
+The merged `analytics/CutScope_analysis.json` contains four opportunities and
+2,840 evidence jobs and is compatible with the existing backend models. Root
+Compose defaults to real mode and mounts `generated/analysis.json` read-only.
+Prepare that file as described in the root README, then run `docker compose up`.
+The frontend remains a layout preview until its GET API consumers are implemented.
+
+To serve the merged output directly without Docker:
+
+```bash
+.venv/bin/python -m backend.validate_analysis analytics/CutScope_analysis.json --check-api
+ANALYSIS_MODE=real ANALYSIS_PATH=analytics/CutScope_analysis.json .venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001
+```
+
+`/health` must report `analysis_mode: real`. The API response header
+`X-Analysis-Mode: real` identifies the selected mode. Compatibility checks do
+not independently verify analytical calculations or assumptions. Restart the
+local backend after updating its snapshot; recreate Docker's backend after
+replacing the mounted file. No public API fields or analytics calculations change.
+
+The stage handoff notes below describe earlier development milestones; the
+commands above and root Compose describe the current real-data connection.
+
 From the repository root, using Python 3.13 (the tested image runtime):
 
 ```bash
