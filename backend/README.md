@@ -1,12 +1,15 @@
-# CutScope backend — Stages 1 and 2
+# CutScope backend — Stages 1–3
 
 Implemented: FastAPI, typed summary/opportunity/job models, startup snapshot
 validation, reference integrity checks, defensive-copy lookups, configurable
 CORS, four read APIs, affected-job pagination, consistent application errors,
-Swagger, and tests. No external AI is required.
+chat HTTP adapter, authoritative context lookup, timeout/fallback handling,
+Swagger, and tests. Core analysis works without external AI.
 
 See [the Stage 2 contract draft](API_STAGE2.md) for exact fields, pagination,
 error codes, storage layout, and Person 5's adoption checklist.
+See [Copilot integration](COPILOT_INTEGRATION.md) for Person 4's async callable,
+chat schemas/configuration, and remaining live-integration work.
 
 ## Local startup
 
@@ -38,6 +41,8 @@ Job evidence: <http://localhost:8001/api/jobs/123>
 | `ANALYSIS_MODE` | `mock` | `mock` or `real`; returned in `X-Analysis-Mode` header |
 | `ANALYSIS_PATH` | Backend-local fixture in mock mode; `generated/analysis.json` in real mode | Absolute path or repository-relative path |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated origins; empty disables allowed origins; credentials disabled |
+| `CHAT_SERVICE` | Unset | Optional `module:async_callable` owned by Person 4 |
+| `CHAT_TIMEOUT_SECONDS` | `20` | Finite positive cooperative service timeout |
 
 Environment is captured when the application is created. The snapshot loads
 once during startup. Restart after changing environment or snapshot contents.
@@ -54,7 +59,7 @@ ANALYSIS_MODE=real ANALYSIS_PATH=generated/analysis.json .venv/bin/python -m uvi
 ## Person 5 handoff and assumptions
 
 The shared `PROJECT_SPEC.md`, `API_CONTRACT.md`, `ANALYSIS_METHOD.md`, and
-`fixtures/analysis.mock.json` remain empty through Stage 2. Summary fields
+`fixtures/analysis.mock.json` remain empty through Stage 3 adapter work. Summary fields
 follow the supplied project-description examples. Required numeric fields
 accept explicit null for unknown values; absent fields are rejected. Values
 are served unchanged, with finite nonnegative numbers and 0–100 percentages.
@@ -84,7 +89,10 @@ the startup command above, container port 8001, and a read-only snapshot mount
 at the configured path. The existing root Compose still launches only the
 dashboard. Backend Docker packaging and Compose changes are later-stage work.
 
-Limitations: chat, health endpoint, live MantisGrid evidence, real-data adoption,
+Limitations: Person 4's four AI service files remain empty. The chat adapter
+works with injected/configured async services and defaults to an honest
+`cannot_determine` fallback; live service integration and evidence grounding
+are pending. Health endpoint, live MantisGrid evidence, real-data adoption,
 Docker packaging, and full frontend/container E2E are not yet implemented.
 The only opportunity is synthetic first-slice development data; final MVP's
 three ranked real opportunities depend on Person 1. Dependency ranges are
@@ -93,11 +101,14 @@ packaging. No shared contract was edited or claimed to be approved.
 
 ## Verification at handoff
 
-`python -m pytest backend/tests -q`: 64 passed. Tested with Python 3.13.5,
+`python -m pytest backend/tests -q`: 105 passed. Tested with Python 3.13.5,
 FastAPI 0.141.1, Pydantic 2.13.5, Uvicorn 0.53.0, pytest 9.1.1, and
 httpx 0.28.1. The installed Starlette/AnyIO test stack emitted two dependency
 deprecation warnings; tests passed. Container/network E2E was not run in this
 stage. In-process API tests cover the full read-only drill-down, pagination,
 null/zero preservation, pricing, failure sanitization, CORS, OpenAPI, and
-snapshot integrity. Startup snapshot loading uses FastAPI's documented
+snapshot integrity. Chat tests cover authoritative context, importable async
+services, invalid requests/responses, reference checks, cancellation/timeout,
+fallback, CORS, and read-API independence. These use test stubs, not live AI.
+Startup snapshot loading uses FastAPI's documented
 [lifespan mechanism](https://fastapi.tiangolo.com/advanced/events/).

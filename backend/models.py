@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator, model_validator
 
 NonNegative = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 Percentage = Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)]
@@ -132,6 +132,31 @@ class ErrorDetail(ContractModel):
 
 class ErrorResponse(ContractModel):
     error: ErrorDetail
+
+
+class ChatRequest(ContractModel):
+    question: Annotated[StrictStr, Field(min_length=1, max_length=4000)]
+    opportunity_id: Identifier | None = None
+    job_id: Count | None = None
+
+    @field_validator("question")
+    @classmethod
+    def nonblank_question(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Question cannot be blank")
+        return value
+
+
+class ChatResponse(ContractModel):
+    answer: Annotated[StrictStr, Field(min_length=1)]
+    evidence: list[dict[str, Any]]
+    risk: StrictStr
+    recommendation: StrictStr
+    confidence: Confidence | None
+    finding_ids: list[Identifier]
+    job_ids: list[Count]
+    caveats: list[StrictStr]
 
 
 class AnalysisSnapshot(ContractModel):

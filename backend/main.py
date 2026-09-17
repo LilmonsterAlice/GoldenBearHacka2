@@ -6,15 +6,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import Settings
 from backend.errors import error_response, register_error_handlers
+from backend.routes.chat import router as chat_router
 from backend.routes.jobs import router as jobs_router
 from backend.routes.opportunities import router as opportunities_router
 from backend.routes.summary import router
 from backend.services.analysis_store import AnalysisStore
+from backend.services.chat_adapter import ChatService, load_chat_service
 
 logger = logging.getLogger(__name__)
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, chat_service: ChatService | None = None) -> FastAPI:
     configured = settings if settings is not None else Settings.from_env()
 
     @asynccontextmanager
@@ -22,17 +24,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         selected = configured
         app.state.analysis_store = AnalysisStore.load(selected.analysis_path)
         app.state.settings = selected
+        app.state.chat_service = chat_service if chat_service is not None else load_chat_service(selected.chat_service)
         if selected.analysis_mode == "mock":
             logger.warning("MOCK MODE: serving synthetic analysis from %s", selected.analysis_path)
         try:
             yield
         finally:
             del app.state.analysis_store
+            del app.state.chat_service
 
     app = FastAPI(
         title="CutScope Product API",
-        version="0.2.0",
-        description="Stored summary, opportunities, and job evidence. Default development data is synthetic.",
+        version="0.3.0",
+        description="Stored analysis and optional AI Copilot. Default development data is synthetic.",
         lifespan=lifespan,
     )
     @app.middleware("http")
@@ -50,7 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=list(configured.cors_origins),
         allow_credentials=False,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
         expose_headers=["X-Analysis-Mode"],
     )
@@ -58,6 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(router)
     app.include_router(opportunities_router)
     app.include_router(jobs_router)
+    app.include_router(chat_router)
     return app
 
 

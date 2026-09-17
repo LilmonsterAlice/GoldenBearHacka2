@@ -31,6 +31,7 @@ def test_docs_and_openapi():
         schema = client.get("/openapi.json").json()
         assert set(schema["paths"]) == {
             "/api/summary", "/api/opportunities", "/api/opportunities/{id}", "/api/jobs/{job_id}",
+            "/api/chat",
         }
         assert schema["paths"]["/api/summary"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith("/Summary")
 
