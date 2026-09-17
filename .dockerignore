@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.py[cod]
+.DS_Store
+.env
+.streamlit/secrets.toml
+data/raw
+data/prepped
+data/processed
+data/synthetic
+notebooks/.ipynb_checkpoints
