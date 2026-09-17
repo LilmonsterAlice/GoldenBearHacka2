@@ -1,0 +1,40 @@
+# Use after the root Compose file: all paths resolve from repository root.
+# Person 5 can merge these service definitions into root Compose later.
+services:
+  product-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      ANALYSIS_MODE: ${ANALYSIS_MODE:-mock}
+      ANALYSIS_PATH: /snapshot/analysis.json
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CHAT_SERVICE: ${CHAT_SERVICE:-}
+      CHAT_TIMEOUT_SECONDS: ${CHAT_TIMEOUT_SECONDS:-20}
+    volumes:
+      - type: bind
+        source: ${ANALYSIS_HOST_PATH:-./backend/fixtures/analysis.stage1.mock.json}
+        target: /snapshot/analysis.json
+        read_only: true
+        bind:
+          create_host_path: false
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2).read()"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  dashboard:
+    environment:
+      BACKEND_URL: http://product-backend:8001
+    depends_on:
+      product-backend:
+        condition: service_healthy

@@ -10,4 +10,5 @@ data/raw
 data/prepped
 data/processed
 data/synthetic
+generated
 notebooks/.ipynb_checkpoints
