@@ -1,5 +1,6 @@
 import streamlit as st
 
+from components.copilot import render_copilot
 from components.dashboard1 import render_dashboard1
 
 
@@ -10,3 +11,4 @@ st.set_page_config(
 )
 
 render_dashboard1()
+render_copilot()
