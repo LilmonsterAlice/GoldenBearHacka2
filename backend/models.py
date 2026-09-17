@@ -163,3 +163,5 @@ class AnalysisSnapshot(ContractModel):
     summary: Summary
     opportunities: list[OpportunityRecord]
     jobs: list[JobRecord]
+    # Optional producer metadata is file-only and never part of API responses.
+    metadata: dict[str, Any] = Field(default_factory=dict)

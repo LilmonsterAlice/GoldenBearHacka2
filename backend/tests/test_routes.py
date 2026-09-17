@@ -56,6 +56,8 @@ def test_real_mode_missing_file_fails_startup(tmp_path):
 
 
 def test_real_mode_header(payload, write_snapshot):
+    # Contract-shaped test input, not official data or a verified analysis.
+    payload["summary"]["price_book_version"] = "unit-test-price-book"
     payload["summary"]["scope_caveat"] = "Four-month workload sample"
     with TestClient(create_app(Settings("real", write_snapshot(payload)))) as client:
         assert client.get("/api/summary").headers["X-Analysis-Mode"] == "real"

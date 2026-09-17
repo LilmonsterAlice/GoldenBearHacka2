@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Request
 
 from backend.errors import APIError, ERROR_RESPONSES
-from backend.models import OpportunityDetail, OpportunityList, OpportunitySummary
+from backend.models import OpportunityDetail, OpportunityList
 
 router = APIRouter(prefix="/api/opportunities", tags=["opportunities"], responses=ERROR_RESPONSES)
 
@@ -12,10 +12,8 @@ router = APIRouter(prefix="/api/opportunities", tags=["opportunities"], response
 def list_opportunities(request: Request) -> dict:
     store = request.app.state.analysis_store
     metadata = store.get_pricing()
-    fields = OpportunitySummary.model_fields
     return {"opportunities": [
-        {**{key: record[key] for key in fields}, **metadata}
-        for record in store.list_opportunities()
+        {**record, **metadata} for record in store.list_opportunity_cards()
     ]}
 
 
@@ -27,9 +25,7 @@ def get_opportunity(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> dict:
     store = request.app.state.analysis_store
-    record = store.get_opportunity(id)
+    record = store.get_opportunity_page(id, offset, limit)
     if record is None:
         raise APIError(404, "OPPORTUNITY_NOT_FOUND", "Opportunity not found")
-    total = len(record["jobs"])
-    record["jobs"] = record["jobs"][offset:offset + limit]
-    return {**record, **store.get_pricing(), "jobs_pagination": {"total": total, "offset": offset, "limit": limit}}
+    return {**record, **store.get_pricing()}
