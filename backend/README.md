@@ -1,4 +1,4 @@
-# CutScope backend — Stages 1–4 preparation
+# CutScope backend — Stages 1–5 backend deliverables
 
 Implemented: FastAPI, typed summary/opportunity/job models, startup snapshot
 validation, reference integrity checks, defensive-copy lookups, configurable
@@ -12,10 +12,12 @@ See [Copilot integration](COPILOT_INTEGRATION.md) for Person 4's async callable,
 chat schemas/configuration, and remaining live-integration work.
 See [analytics integration](ANALYTICS_INTEGRATION.md) for Person 1's incremental
 handoff, schema export, read-only validation, and Person 5's real-data switch.
+See [deployment](DEPLOYMENT.md) for the verified backend image, operational
+health, read-only mount, and Person 5's Compose adoption checklist.
 
 ## Local startup
 
-From the repository root, using Python 3.10 or newer:
+From the repository root, using Python 3.13 (the tested image runtime):
 
 ```bash
 .venv/bin/python -m pip install -r backend/requirements-dev.txt
@@ -92,25 +94,28 @@ coordinated schema tests. Do not silently change the summary API.
 For later Compose integration, use repository root as working directory,
 the startup command above, container port 8001, and a read-only snapshot mount
 at the configured path. The existing root Compose still launches only the
-dashboard. Backend Docker packaging and Compose changes are later-stage work.
+dashboard. Backend packaging and a reviewable integration overlay are now
+available; Person 5 can adopt them into root Compose.
 
 Limitations: Person 4's four AI service files remain empty. The chat adapter
 works with injected/configured async services and defaults to an honest
 `cannot_determine` fallback; live service integration and evidence grounding
-are pending. Health endpoint, live MantisGrid evidence, real-data adoption,
-Docker packaging, and full frontend/container E2E are not yet implemented.
+are pending. Live MantisGrid evidence, actual real-data adoption, and full
+frontend/container E2E remain pending. Operational `/health` and backend
+Docker packaging are implemented and image-tested.
 The only opportunity is synthetic first-slice development data; final MVP's
-three ranked real opportunities depend on Person 1. Dependency ranges are
-bounded but not locked; finalize reproducible deployment versions during
-packaging. No shared contract was edited or claimed to be approved.
+three ranked real opportunities depend on Person 1. Runtime dependencies are
+pinned; base image digest and Person 4's dependencies can be finalized during
+integration. No shared contract was edited or claimed to be approved.
 
 ## Verification at handoff
 
-`python -m pytest backend/tests -q`: 120 passed. Tested with Python 3.13.5,
+`python -m pytest backend/tests -q`: 122 passed. Tested locally with Python 3.13.5,
 FastAPI 0.141.1, Pydantic 2.13.5, Uvicorn 0.53.0, pytest 9.1.1, and
 httpx 0.28.1. The installed Starlette/AnyIO test stack emitted two dependency
-deprecation warnings; tests passed. Container/network E2E was not run in this
-stage. In-process API tests cover the full read-only drill-down, pagination,
+deprecation warnings; tests passed. Backend image build, health, and live
+in-container API smoke checks passed. Full frontend/cross-service E2E was
+not run. In-process API tests cover the full read-only drill-down, pagination,
 null/zero preservation, pricing, failure sanitization, CORS, OpenAPI, and
 snapshot integrity. Chat tests cover authoritative context, importable async
 services, invalid requests/responses, reference checks, cancellation/timeout,

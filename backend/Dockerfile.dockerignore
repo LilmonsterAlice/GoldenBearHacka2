@@ -1,0 +1,13 @@
+# Backend build allowlist. Real datasets, generated analysis, secrets, local
+# environments, tests, and frontend files never enter this build context.
+**
+!backend/
+!backend/*.py
+!backend/requirements.txt
+!backend/requirements.lock.txt
+!backend/routes/
+!backend/routes/*.py
+!backend/services/
+!backend/services/*.py
+!backend/fixtures/
+!backend/fixtures/analysis.stage1.mock.json

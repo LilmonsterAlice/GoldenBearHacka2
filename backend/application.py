@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import Settings
 from backend.errors import error_response, register_error_handlers
 from backend.routes.chat import router as chat_router
+from backend.routes.health import router as health_router
 from backend.routes.jobs import router as jobs_router
 from backend.routes.opportunities import router as opportunities_router
 from backend.routes.summary import router
@@ -63,5 +64,5 @@ def create_app(settings: Settings | None = None, *, chat_service: ChatService | 
     app.include_router(opportunities_router)
     app.include_router(jobs_router)
     app.include_router(chat_router)
+    app.include_router(health_router)
     return app
-
