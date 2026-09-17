@@ -1,5 +1,18 @@
 # GoldenBearHacka2
 
+CutScope is an AI GPU Efficiency Command Center for MantisGrid Track 2.
+
+Shared contracts and team rules:
+
+- `PROJECT_SPEC.md`
+- `API_CONTRACT.md`
+- `ANALYSIS_METHOD.md`
+- `TEAM_INTEGRATION_RULES.md`
+- `fixtures/analysis.mock.json`
+
+The current `main` branch contains a Streamlit prototype. Feature modules are
+integrated through the five endpoints frozen in `API_CONTRACT.md`.
+
 ## Run with Docker (submission workflow)
 
 Docker Desktop must be installed and running. From the repository root, start
@@ -58,3 +71,17 @@ or pressing `Control + C` stops the local server.
 ### Stop the dashboard
 
 Press `Control + C` in the Terminal window running Streamlit.
+
+## Integration smoke tests
+
+With the current dashboard running:
+
+```bash
+python tests/e2e/smoke_test.py --services dashboard
+```
+
+After the Product Backend is merged and running on port `8001`:
+
+```bash
+python tests/e2e/smoke_test.py --services all
+```
