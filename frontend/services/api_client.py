@@ -11,8 +11,44 @@ class ChatAPIError(RuntimeError):
     """Raised when the chat API cannot return a usable response."""
 
 
+class APIError(RuntimeError):
+    """Raised when a dashboard read endpoint is unavailable or invalid."""
+
+
 def _api_base_url() -> str:
     return os.environ.get("API_BASE_URL", "http://localhost:8001").rstrip("/")
+
+
+def _get_json(path: str, *, timeout: float = 10.0) -> dict[str, Any]:
+    request = Request(f"{_api_base_url()}{path}", method="GET")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            body = json.load(response)
+    except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        raise APIError(f"Backend endpoint unavailable: {path}") from exc
+    if not isinstance(body, dict):
+        raise APIError(f"Backend returned invalid data: {path}")
+    return body
+
+
+def get_summary() -> dict[str, Any]:
+    return _get_json("/api/summary")
+
+
+def get_opportunities() -> list[dict[str, Any]]:
+    body = _get_json("/api/opportunities")
+    opportunities = body.get("opportunities")
+    if not isinstance(opportunities, list):
+        raise APIError("Backend returned invalid opportunities")
+    return opportunities
+
+
+def get_opportunity(opportunity_id: str, *, limit: int = 10) -> dict[str, Any]:
+    return _get_json(f"/api/opportunities/{opportunity_id}?offset=0&limit={limit}")
+
+
+def get_job(job_id: int) -> dict[str, Any]:
+    return _get_json(f"/api/jobs/{job_id}")
 
 
 def post_chat(
