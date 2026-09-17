@@ -1,0 +1,74 @@
+{
+  "summary": {
+    "total_gpu_hours": 100,
+    "total_cost_usd": 250,
+    "price_per_gpu_hour": 2.5,
+    "price_book_version": "synthetic-stage1",
+    "completed_percent": 60,
+    "outcomes": [
+      {"name": "COMPLETED", "jobs": 3, "gpu_hours": 60, "cost_usd": 150, "capacity_percent": 60},
+      {"name": "CANCELLED", "jobs": 2, "gpu_hours": 40, "cost_usd": 100, "capacity_percent": 40}
+    ],
+    "scope_caveat": "SYNTHETIC development fixture; not official data or verified savings. Product results will describe a four-month workload sample."
+  },
+  "opportunities": [
+    {
+      "id": "idle-interactive",
+      "title": "Idle interactive sessions (synthetic)",
+      "action": "Pilot a warning and idle timeout with an opt-out",
+      "owner": "Platform Operations",
+      "savings_usd_low": 10,
+      "savings_usd_high": 25,
+      "gpu_hours_low": 4,
+      "gpu_hours_high": 10,
+      "capacity_percent_low": 4,
+      "capacity_percent_high": 10,
+      "confidence": 0.7,
+      "risk_level": "medium",
+      "job_count": 2,
+      "method": "Synthetic scenario: reclaim 4–10 GPU-hours at the sample rate of $2.50/GPU-hour. These are stored fixture values, not backend calculations.",
+      "basis": "Synthetic low-utilization session evidence; cancellation alone is not evidence of recoverable waste.",
+      "caveats": ["Synthetic development fixture, not verified savings.", "Low utilization alone cannot establish that work is unnecessary.", "Missing measurements remain unknown; real results cover the four-month sample."],
+      "cost_if_wrong": {
+        "description": "An idle timeout may interrupt useful interactive work; synthetic risk range only.",
+        "usd_low": 0,
+        "usd_high": 5,
+        "reversible": true,
+        "mitigation": "Warn first, allow opt-out, pilot on a small cohort, and disable the timeout if useful work is interrupted."
+      },
+      "jobs": [{"job_id": 123}, {"job_id": 124}]
+    }
+  ],
+  "jobs": [
+    {
+      "job_id": 123,
+      "state": "CANCELLED",
+      "gpu_count": 2,
+      "gpu_hours": 20,
+      "cost_usd": 50,
+      "sm_util_avg": 1,
+      "sm_util_max": 10,
+      "walltime_hours": 10,
+      "primary_node": "synthetic-node-1",
+      "findings": [{
+        "finding_id": "synthetic-idle-123",
+        "source": "backend-local synthetic fixture; not MantisGrid",
+        "fact_or_judgment": "fact",
+        "description": "Synthetic telemetry has two low-utilization samples. This does not by itself establish recoverability.",
+        "raw_evidence": [{"elapsed_hours": 8, "sm_util_percent": 0}, {"elapsed_hours": 9, "sm_util_percent": 1}]
+      }]
+    },
+    {
+      "job_id": 124,
+      "state": "CANCELLED",
+      "gpu_count": 2,
+      "gpu_hours": 20,
+      "cost_usd": 50,
+      "sm_util_avg": null,
+      "sm_util_max": null,
+      "walltime_hours": 10,
+      "primary_node": "synthetic-node-2",
+      "findings": []
+    }
+  ]
+}
