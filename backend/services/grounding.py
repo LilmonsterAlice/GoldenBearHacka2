@@ -4,11 +4,11 @@ import json
 import re
 from typing import Any
 
-from backend.services.context_builder import IdleInteractiveContext
+from backend.services.context_builder import OpportunityContext
 
 
 def grounded_references(
-    context: IdleInteractiveContext,
+    context: OpportunityContext,
 ) -> tuple[list[dict[str, Any]], list[str], list[int]]:
     """Return evidence and IDs that can be traced to selected stored jobs."""
     allowed_job_ids = {job["job_id"] for job in context.jobs}
@@ -32,7 +32,7 @@ def grounded_references(
 
 def validate_generated_claims(
     generated: dict[str, Any],
-    context: IdleInteractiveContext,
+    context: OpportunityContext | None,
 ) -> tuple[str, str, str, bool]:
     """Reject malformed text or numerical claims absent from stored context."""
     required = ("answer", "risk", "recommendation")
@@ -48,6 +48,8 @@ def validate_generated_claims(
         raise ValueError("Invalid generated gpu_related flag")
 
     if gpu_related:
+        if context is None:
+            raise ValueError("GPU-related response has no selected opportunity context")
         source = json.dumps(
             {
                 "opportunity": context.opportunity,

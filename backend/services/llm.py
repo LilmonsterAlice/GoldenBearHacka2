@@ -5,8 +5,9 @@ import json
 from backend.models import ChatResponse
 from backend.services.chat_adapter import ChatContext
 from backend.services.context_builder import (
-    IdleInteractiveContext,
-    build_idle_interactive_context,
+    OpportunityContext,
+    build_opportunity_context,
+    route_opportunity_id,
 )
 from backend.services.featherless_client import FeatherlessClient, FeatherlessError
 from backend.services.grounding import grounded_references, validate_generated_claims
@@ -92,14 +93,14 @@ def _looks_in_scope(question: str) -> bool:
         "what could go wrong if we enforce an idle timeout",
         "what evidence supports this recommendation",
     }
-    return any(term in normalized for term in gpu_terms) or any(
+    return route_opportunity_id(question) is not None or any(term in normalized for term in gpu_terms) or any(
         phrase in normalized for phrase in preset_followups
     )
 
 
 def _deterministic_text(
     question: str,
-    selected: IdleInteractiveContext,
+    selected: OpportunityContext,
     evidence: list[dict],
 ) -> tuple[str, str, str, bool]:
     opportunity = selected.opportunity
@@ -152,7 +153,7 @@ def _deterministic_text(
             answer = "cannot_determine: The selected opportunity has no grounded finding evidence."
     else:
         answer = (
-            f"The stored Idle Interactive scenario treats {gpu_hours}, worth {savings}, as a range to "
+            f"The stored {opportunity.get('title', 'opportunity')} scenario treats {gpu_hours}, worth {savings}, as a range to "
             "investigate—not guaranteed savings. Capacity may be recoverable when a reserved interactive "
             "allocation remains open while little GPU compute is observed. Low utilization alone is not "
             "proof of waste, so the recommendation is a warning-first pilot with an opt-out."
@@ -165,25 +166,31 @@ def _deterministic_text(
 
 async def answer_chat(*, question: str, context: ChatContext) -> ChatResponse:
     """Generate language with Featherless while keeping citations authoritative."""
-    selected = build_idle_interactive_context(context)
-    if selected is None:
-        return ChatResponse(
-            answer="cannot_determine: No Idle Interactive opportunity is available in the selected analysis.",
-            evidence=[],
-            risk="cannot_determine",
-            recommendation="Select the Idle Interactive opportunity and try again.",
-            confidence=None,
-            finding_ids=[],
-            job_ids=[],
-            caveats=[context.summary.scope_caveat],
+    selected = build_opportunity_context(question, context)
+    opportunity = selected.opportunity if selected is not None else None
+    if selected is not None:
+        evidence, finding_ids, job_ids = grounded_references(selected)
+        answer, risk, recommendation, _ = _deterministic_text(
+            question, selected, evidence
         )
-
-    opportunity = selected.opportunity
-    evidence, finding_ids, job_ids = grounded_references(selected)
-    answer, risk, recommendation, _ = _deterministic_text(
-        question, selected, evidence
-    )
-    gpu_related = _looks_in_scope(question)
+    else:
+        evidence, finding_ids, job_ids = [], [], []
+        if _is_greeting(question):
+            answer, risk, recommendation = (
+                "Hello! How can I help?", "Not applicable.",
+                "Ask about a CutScope opportunity or another topic.",
+            )
+        elif _is_capability_question(question):
+            answer, risk, recommendation = (
+                "I can explain CutScope's GPU opportunities, evidence, savings ranges, and policy risks.",
+                "Not applicable.", "Ask about one of the four CutScope opportunities.",
+            )
+        else:
+            answer, risk, recommendation = (
+                "The LLM provider is unavailable, so I cannot answer this general question right now.",
+                "Not applicable.", "Try again when the LLM provider is available.",
+            )
+    gpu_related = selected is not None and _looks_in_scope(question)
     client = FeatherlessClient()
     generation_caveat = "No Featherless key was configured; a deterministic grounded response was used."
 
@@ -227,10 +234,10 @@ async def answer_chat(*, question: str, context: ChatContext) -> ChatResponse:
                 "a deterministic grounded response was used."
             )
 
-    caveats = list(opportunity.get("caveats", [])) if gpu_related else []
+    caveats = list(opportunity.get("caveats", [])) if gpu_related and opportunity else []
     route_caveats = (
         (selected.scope_caveat, generation_caveat)
-        if gpu_related
+        if gpu_related and selected is not None
         else (generation_caveat,)
     )
     for caveat in route_caveats:
@@ -242,7 +249,7 @@ async def answer_chat(*, question: str, context: ChatContext) -> ChatResponse:
         evidence=evidence if gpu_related else [],
         risk=risk,
         recommendation=recommendation,
-        confidence=opportunity.get("confidence") if gpu_related else None,
+        confidence=opportunity.get("confidence") if gpu_related and opportunity else None,
         finding_ids=finding_ids if gpu_related else [],
         job_ids=job_ids if gpu_related else [],
         caveats=caveats,

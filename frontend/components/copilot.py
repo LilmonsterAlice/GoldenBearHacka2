@@ -246,7 +246,6 @@ def _render_copilot_window() -> None:
         try:
             response = post_chat(
                 pending_question,
-                opportunity_id="idle-interactive",
                 timeout=30.0,
             )
         except ChatAPIError:
