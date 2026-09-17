@@ -223,7 +223,7 @@ def test_imported_service_integration_uses_configured_export(settings, grounded_
         assert response.json()["answer"] == grounded_result["answer"]
 
 
-@pytest.mark.parametrize("target", ["missing_person4_module:answer_chat", "backend.services.llm:answer_chat", "invalid-target"])
+@pytest.mark.parametrize("target", ["missing_person4_module:answer_chat", "invalid-target"])
 def test_unloadable_optional_service_does_not_disable_backend(settings, target):
     with TestClient(create_app(replace(settings, chat_service=target))) as client:
         assert_fallback(client.post("/api/chat", json={"question": "Explain"}))

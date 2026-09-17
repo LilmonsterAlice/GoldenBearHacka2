@@ -2,12 +2,19 @@ from typing import Any
 
 import streamlit as st
 
+from services.api_client import ChatAPIError, post_chat
+
 
 PRESET_QUESTIONS = [
     "Why is idle interactive capacity recoverable?",
     "What could go wrong if we enforce an idle timeout?",
     "What evidence supports this recommendation?",
 ]
+
+
+def _markdown_text(value: Any) -> str:
+    """Prevent dollar amounts in API text from being parsed as LaTeX."""
+    return str(value).replace("$", r"\$")
 
 
 def _mock_idle_interactive_response(question: str) -> dict[str, Any]:
@@ -56,20 +63,41 @@ def _mock_idle_interactive_response(question: str) -> dict[str, Any]:
 
 
 def _render_assistant_response(response: dict[str, Any]) -> None:
-    st.markdown(response["answer"])
-    st.caption(f"Mock confidence: {response['confidence']:.0%}")
+    st.markdown(_markdown_text(response["answer"]))
+    confidence = response.get("confidence")
+    if confidence is None:
+        st.caption("Confidence: unavailable")
+    else:
+        st.caption(f"Confidence: {confidence:.0%}")
 
     with st.expander("Evidence, recommendation, and caveats"):
         st.markdown("**Evidence**")
-        for item in response["evidence"]:
-            st.markdown(f"- {item}")
+        if response["evidence"]:
+            for item in response["evidence"]:
+                if isinstance(item, dict):
+                    description = item.get("description")
+                    if description:
+                        st.markdown(f"- {_markdown_text(description)}")
+                    else:
+                        st.json(item)
+                else:
+                    st.markdown(f"- {_markdown_text(item)}")
+        else:
+            st.markdown("- No grounded evidence returned.")
 
-        st.markdown(f"**Risk:** {response['risk']}")
-        st.markdown(f"**Recommendation:** {response['recommendation']}")
+        st.markdown(f"**Risk:** {_markdown_text(response['risk'])}")
+        st.markdown(f"**Recommendation:** {_markdown_text(response['recommendation'])}")
+
+        finding_ids = response.get("finding_ids", [])
+        job_ids = response.get("job_ids", [])
+        if finding_ids:
+            st.markdown(f"**Finding IDs:** {', '.join(finding_ids)}")
+        if job_ids:
+            st.markdown(f"**Job IDs:** {', '.join(map(str, job_ids))}")
 
         st.markdown("**Caveats**")
         for caveat in response["caveats"]:
-            st.markdown(f"- {caveat}")
+            st.markdown(f"- {_markdown_text(caveat)}")
 
 
 def _initialize_history() -> None:
@@ -105,7 +133,7 @@ def _render_copilot_window() -> None:
             help="Close AI Copilot",
             on_click=_close_copilot,
         )
-        st.caption("Idle Interactive prototype · Mock responses · No LLM connected")
+        st.caption("Idle Interactive prototype · Backend API · Local fallback available")
 
         with st.container(height=175, border=False, key="copilot_history"):
             for message in st.session_state.copilot_messages:
@@ -141,7 +169,17 @@ def _render_copilot_window() -> None:
         with st.chat_message("user"):
             st.markdown(question)
 
-        response = _mock_idle_interactive_response(question)
+        try:
+            response = post_chat(
+                question,
+                opportunity_id="idle-interactive",
+            )
+        except ChatAPIError:
+            response = _mock_idle_interactive_response(question)
+            response["caveats"].insert(
+                0,
+                "Backend API unavailable; displaying the local UI fallback.",
+            )
         st.session_state.copilot_messages.append(
             {
                 "role": "assistant",
