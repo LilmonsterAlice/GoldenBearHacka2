@@ -53,8 +53,7 @@ def check_api(settings: Settings, store: AnalysisStore) -> int:
                 expected = {**store.get_opportunity_page(card["id"], offset, 1), **store.get_pricing()}
                 if actual != expected:
                     raise CompatibilityError("Opportunity detail or pagination values changed in the API")
-                for reference in actual["jobs"]:
-                    job_id = reference["job_id"]
+                for job_id in actual["jobs"]:
                     if job_id not in checked_jobs:
                         checked_jobs.add(job_id)
                         job = get(f"/api/jobs/{job_id}", JobDetail)

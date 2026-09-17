@@ -127,7 +127,7 @@ class AnalysisStore:
             return None
         # Copy metadata and the requested page, not the complete affected-job list.
         record = deepcopy({key: value for key, value in source.items() if key != "jobs"})
-        record["jobs"] = deepcopy(source["jobs"][offset:offset + limit])
+        record["jobs"] = [reference["job_id"] for reference in source["jobs"][offset:offset + limit]]
         record["jobs_pagination"] = {"total": len(source["jobs"]), "offset": offset, "limit": limit}
         return record
 

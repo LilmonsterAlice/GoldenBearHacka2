@@ -117,7 +117,7 @@ def test_routes_do_not_copy_full_opportunity_records(payload, write_snapshot, mo
         assert client.get("/api/opportunities").status_code == 200
         response = client.get("/api/opportunities/idle-interactive?limit=1")
         assert response.status_code == 200
-        assert response.json()["jobs"] == [{"job_id": 123}]
+        assert response.json()["jobs"] == [123]
 
 
 def test_large_reference_list_is_paged_without_mutating_source(payload, write_snapshot):
@@ -126,8 +126,9 @@ def test_large_reference_list_is_paged_without_mutating_source(payload, write_sn
     payload["opportunities"][0].update(jobs=[{"job_id": job_id} for job_id in range(2000)], job_count=2000)
     store = AnalysisStore.load(write_snapshot(payload))
     page = store.get_opportunity_page("idle-interactive", 1999, 20)
-    assert page["jobs"] == [{"job_id": 1999}]
+    assert page["jobs"] == [1999]
     assert page["jobs_pagination"]["total"] == 2000
-    page["jobs"][0]["job_id"] = -1
-    assert store.get_opportunity_page("idle-interactive", 1999, 20)["jobs"] == [{"job_id": 1999}]
+    page["jobs"][0] = -1
+    assert store.get_opportunity_page("idle-interactive", 1999, 20)["jobs"] == [1999]
+    assert store.get_opportunity("idle-interactive")["jobs"][-1] == {"job_id": 1999}
     assert "jobs" not in store.list_opportunity_cards()[0]
