@@ -79,3 +79,14 @@ The output is `generated/analysis.json`, with `summary`, `opportunities`,
 `jobs`, and `metadata`. Each opportunity's `jobs` references resolve to a job
 record that includes the original MantisGrid finding payloads. The builder
 writes JSON atomically and does not mutate the source files.
+
+## Shared constraints from the main branch
+
+CANCELLED is not automatically waste. `lost`, `consumed`, `degraded`, and
+`unused_capacity` are different impact kinds and must not be summed as one
+savings pool. The current four opportunities use only `unused_capacity`.
+
+Hardware analysis is outside this four-opportunity snapshot. If added later,
+use attempt history (`hit_node_failure`, `nodefail_nodes`) rather than the final
+job state or final placement alone. Any new opportunity must preserve the
+one-primary-opportunity-per-job-hour rule and document its own counterfactual.
