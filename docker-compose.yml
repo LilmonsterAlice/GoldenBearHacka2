@@ -8,6 +8,10 @@ services:
     environment:
       ANALYSIS_MODE: "mock"
       CHAT_SERVICE: "backend.services.llm:answer_chat"
+      FEATHERLESS_API_KEY: "${FEATHERLESS_API_KEY:-}"
+      FEATHERLESS_BASE_URL: "${FEATHERLESS_BASE_URL:-https://api.featherless.ai/v1}"
+      FEATHERLESS_MODEL: "${FEATHERLESS_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
+      FEATHERLESS_TIMEOUT_SECONDS: "${FEATHERLESS_TIMEOUT_SECONDS:-20}"
       PYTHONUNBUFFERED: "1"
     healthcheck:
       test:
