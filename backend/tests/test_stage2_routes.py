@@ -2,6 +2,7 @@ from copy import deepcopy
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from backend.config import Settings
 from backend.main import create_app
@@ -27,9 +28,11 @@ def test_full_drilldown_preserves_stored_values_and_evidence(client, payload):
     for field, value in card.items():
         assert detail[field] == value
     stored = payload["opportunities"][0]
-    for field in ("method", "basis", "caveats", "cost_if_wrong", "jobs"):
+    for field in ("method", "basis", "caveats", "cost_if_wrong"):
         assert detail[field] == stored[field]
-    job_response = client.get(f"/api/jobs/{detail['jobs'][0]['job_id']}")
+    assert detail["jobs"] == [123, 124]
+    assert all(type(job_id) is int for job_id in detail["jobs"])
+    job_response = client.get(f"/api/jobs/{detail['jobs'][0]}")
     assert job_response.status_code == 200
     job = job_response.json()
     JobDetail.model_validate(job)
@@ -41,6 +44,14 @@ def test_full_drilldown_preserves_stored_values_and_evidence(client, payload):
         assert record["price_book_version"] == summary["price_book_version"]
 
 
+@pytest.mark.parametrize("invalid_jobs", [[{"job_id": 123}], ["123"], [123.0], [True], [-1]])
+def test_detail_response_model_requires_integer_job_ids(client, invalid_jobs):
+    detail = client.get("/api/opportunities/idle-interactive").json()
+    detail["jobs"] = invalid_jobs
+    with pytest.raises(ValidationError):
+        OpportunityDetail.model_validate(detail)
+
+
 @pytest.mark.parametrize("offset,limit,expected", [
     (0, 1, [123]), (1, 1, [124]), (2, 1, []), (999, 100, []),
 ])
@@ -48,7 +59,7 @@ def test_pagination_is_stable_and_retains_full_count(client, offset, limit, expe
     response = client.get("/api/opportunities/idle-interactive", params={"offset": offset, "limit": limit})
     assert response.status_code == 200
     detail = response.json()
-    assert [reference["job_id"] for reference in detail["jobs"]] == expected
+    assert detail["jobs"] == expected
     assert detail["jobs_pagination"] == {"total": 2, "offset": offset, "limit": limit}
     assert detail["job_count"] == 2
     assert len(client.get("/api/opportunities/idle-interactive").json()["jobs"]) == 2
@@ -153,3 +164,6 @@ def test_openapi_documents_success_and_error_models(client):
     assert query["offset"]["minimum"] == 0
     assert query["limit"]["default"] == 20
     assert query["limit"]["maximum"] == 100
+    jobs = schema["components"]["schemas"]["OpportunityDetail"]["properties"]["jobs"]
+    assert jobs["type"] == "array"
+    assert jobs["items"]["type"] == "integer"
