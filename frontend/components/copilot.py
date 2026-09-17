@@ -172,7 +172,7 @@ def _render_copilot_window() -> None:
         try:
             response = post_chat(
                 question,
-                opportunity_id="idle-interactive",
+                opportunity_id=st.session_state.get("selected_opportunity", "idle-interactive"),
             )
         except ChatAPIError:
             response = _mock_idle_interactive_response(question)

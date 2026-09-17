@@ -15,14 +15,19 @@ import requests
 DEFAULT_API_BASE_URL = "http://localhost:8001"
 
 
-def get_api_base_url() -> str:
+def _api_base_url() -> str:
     return (os.environ.get("API_BASE_URL", "").strip() or DEFAULT_API_BASE_URL).rstrip("/")
+
+
+def get_api_base_url() -> str:
+    """Compatibility alias for existing callers."""
+    return _api_base_url()
 
 
 def _request(method: str, path: str, **kwargs):
     response = requests.request(
         method,
-        f"{get_api_base_url()}{path}",
+        f"{_api_base_url()}{path}",
         timeout=(5, 30),
         **kwargs,
     )
@@ -73,7 +78,7 @@ def post_chat(
         payload["job_id"] = job_id
 
     request = Request(
-        f"{get_api_base_url()}/api/chat",
+        f"{_api_base_url()}/api/chat",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",
