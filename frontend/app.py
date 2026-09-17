@@ -14,7 +14,7 @@ from services.api_client import (
 )
 
 
-st.set_page_config(page_title="CutScope", page_icon="◈", layout="wide")
+st.set_page_config(page_title="MantisGrid GPU Usage Analytics", page_icon="◈", layout="wide")
 
 
 def money(value):
@@ -54,7 +54,7 @@ def load_job(job_id):
     return get_job(job_id)
 
 
-st.title("CutScope")
+st.title("MantisGrid GPU Usage Analytics")
 st.caption("GPU cost decisions · Four-month workload sample")
 
 try:
