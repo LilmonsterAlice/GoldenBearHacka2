@@ -70,7 +70,7 @@ Returns all card fields plus:
 | `method`, `basis` | String or null; supplied analytical explanation |
 | `caveats` | Array of strings |
 | `cost_if_wrong` | Object described below |
-| `jobs` | Requested page of `{"job_id": integer}` references |
+| `jobs` | Requested page of integer job IDs, e.g. `[123, 124]` |
 | `jobs_pagination` | `{"total": integer, "offset": integer, "limit": integer}` |
 
 Cost-if-wrong fields: `description` (string/null), `usd_low` and `usd_high`
@@ -85,7 +85,7 @@ Pagination:
   total, not the page size. `job_count` is never replaced with page length.
 - An offset at or beyond the end returns an empty page with status 200.
 - Pagination never changes savings values, ranking, or stored job references.
-- To retrieve evidence, follow a reference to `/api/jobs/{job_id}`.
+- To retrieve evidence, pass a returned integer to `/api/jobs/{job_id}`.
 
 ## GET /api/jobs/{job_id}
 
@@ -149,6 +149,11 @@ Stored opportunity records contain all detail fields except pricing metadata
 and `jobs_pagination`; their `jobs` contain all affected references. Stored job
 records omit pricing metadata, which is supplied from summary. The API only
 slices references and attaches stored pricing; no monetary math occurs here.
+
+Stored opportunity job references retain `{"job_id": integer}` objects for
+existing analytics/AI-context compatibility. The paginated response transforms
+these into integer IDs to match the root API contract. No stored fixture or
+chat-context format migration is required.
 
 Startup rejects malformed models, invalid bounds/ranges, duplicate IDs,
 duplicate job references within an opportunity, nonexistent referenced jobs,

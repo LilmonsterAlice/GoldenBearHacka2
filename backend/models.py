@@ -117,6 +117,8 @@ class JobPagination(ContractModel):
 
 
 class OpportunityDetail(OpportunityRecord, Pricing):
+    # API contract uses integer IDs; stored/AI-context references remain objects.
+    jobs: list[Count]
     jobs_pagination: JobPagination
 
 
