@@ -1,9 +1,12 @@
-"""CutScope layout shell. No mock payloads or analytical calculations."""
+"""CutScope dashboard shell with the floating AI Copilot."""
+
 import streamlit as st
+
+from components.copilot import render_copilot
+
 
 st.set_page_config(page_title="CutScope", page_icon="◈", layout="wide")
 st.session_state.setdefault("selected_opportunity", "idle-interactive")
-st.session_state.setdefault("chat_history", [])
 
 st.title("CutScope")
 st.caption("GPU cost decisions · Four-month workload sample")
@@ -39,28 +42,19 @@ with risk:
         st.caption("Awaiting risk assumptions, mitigation and rollback conditions.")
 
 st.divider()
-evidence, copilot = st.columns([3, 2])
-with evidence:
-    st.subheader("Opportunity & evidence")
-    detail, jobs, findings = st.tabs(["Method & assumptions", "Job evidence", "MantisGrid findings"])
-    with detail:
-        st.write("Idle interactive sessions")
-        st.info("The agreed analysis will explain which hours may be recoverable and why.")
-        with st.expander("Scope and interpretation", expanded=True):
-            st.write("This view describes a four-month workload sample. Cancelled jobs are not automatically waste.")
-            st.write("Savings, confidence and downside estimates will come from the product backend.")
-    with jobs:
-        st.info("No job records connected yet. This does not mean that no jobs are affected.")
-    with findings:
-        st.info("No findings connected yet. Evidence IDs and raw fields will appear after contract integration.")
-with copilot:
-    st.subheader("AI Copilot")
-    st.caption("Explain the selected opportunity using verified analysis and cited evidence.")
-    st.text_input("Example question", value="Why might these hours be recoverable?", disabled=True)
-    st.button("Ask Copilot", disabled=True, use_container_width=True)
-    st.info("Copilot is not connected. Core dashboard sections remain available.")
-    for message in st.session_state["chat_history"]:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
+st.subheader("Opportunity & evidence")
+detail, jobs, findings = st.tabs(["Method & assumptions", "Job evidence", "MantisGrid findings"])
+with detail:
+    st.write("Idle interactive sessions")
+    st.info("The agreed analysis will explain which hours may be recoverable and why.")
+    with st.expander("Scope and interpretation", expanded=True):
+        st.write("This view describes a four-month workload sample. Cancelled jobs are not automatically waste.")
+        st.write("Savings, confidence and downside estimates will come from the product backend.")
+with jobs:
+    st.info("No job records connected yet. This does not mean that no jobs are affected.")
+with findings:
+    st.info("No findings connected yet. Evidence IDs and raw fields will appear after contract integration.")
 
 st.caption("— means unavailable, never zero. Layout preview only; no API requests or savings calculations.")
+
+render_copilot()
