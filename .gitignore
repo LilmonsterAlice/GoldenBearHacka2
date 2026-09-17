@@ -4,3 +4,5 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 generated/*
+data/*
+!data/README.md
