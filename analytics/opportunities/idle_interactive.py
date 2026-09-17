@@ -1,11 +1,10 @@
-"""Person 1's idle-interactive candidates; savings/risk modeling is still pending."""
+"""Identify interactive sessions matching the official idle-session rule."""
 
 import math
-
 import pandas as pd
 
 MAX_SM_UTIL_AVG = 5.0
-MIN_WALLTIME_HOURS = 1.0
+MIN_WALLTIME_HOURS = 4.0
 
 
 def find_idle_interactive_jobs(
@@ -25,7 +24,7 @@ def find_idle_interactive_jobs(
     interactive["walltime_hours"] = pd.to_numeric(interactive["walltime_sec"], errors="raise") / 3600
     utilization = pd.to_numeric(interactive["sm_util_avg"], errors="raise")
     return interactive.loc[
-        utilization.between(0, max_sm_util_avg)
-        & interactive["walltime_hours"].ge(min_walltime_hours)
+        utilization.ge(0) & utilization.lt(max_sm_util_avg)
+        & interactive["walltime_hours"].gt(min_walltime_hours)
         & interactive["walltime_hours"].map(lambda value: pd.notna(value) and math.isfinite(float(value)))
     ].copy()

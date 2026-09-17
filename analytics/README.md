@@ -7,10 +7,9 @@ notebook-derived work here; the official starter repository is not a runtime
 dependency. Only analytics files were changed.
 
 Implemented: configurable local file loading, descriptive summary/outcomes,
-idle candidates, CLI, atomic backend-compatible summary-only JSON, and tests.
-Savings ranges, scenarios, deduplication methodology, other opportunities,
-cost-if-wrong, and job/finding evidence generation remain Person 1's work.
-The empty modules are extension points, not completed implementations.
+four evidence-backed opportunities, scenario ranges, job-level deduplication,
+cost-if-wrong descriptions, job/finding evidence, CLI, atomic backend-compatible
+JSON, and tests. Full analysis requires `--with-opportunities`.
 
 ## Setup after pulling
 
@@ -99,10 +98,10 @@ Person 1's current summary expects a **prepared job-level table** with:
   rather than silently treated as zero.
 
 Idle-candidate detection additionally uses `job_type`, `walltime_sec` (seconds),
-and `sm_util_avg` (0–100). Its original defaults are `LLSUB:INTERACTIVE`, at least
-one hour, and average utilization no more than 5%. Unknown measurements are
-excluded, not set to zero. Thresholds and the interactive type label can be
-refined through function arguments.
+and `sm_util_avg` (0–100). Its official-rule defaults are `LLSUB:INTERACTIVE`,
+more than four hours, and average utilization below 5%. Unknown measurements
+are excluded, not set to zero. Thresholds and the interactive type label can
+be refined through function arguments.
 
 If your notebook/raw download uses different columns or units, put an explicit
 mapping/preparation step in `load_data.py` or a new module inside `analytics/`
@@ -173,13 +172,26 @@ jobs, empty/zero-hour data, invalid values, strict output, and idle thresholds.
 The backend-model integration test skips if backend models are not available
 on the pulled branch; run it again after integration.
 
-The provided local path currently has no official parquet files, so actual
-official-data schema and end-to-end correctness could not be verified here.
-Use `--check-data` on each teammate's downloaded prepared file first. Other
-opportunity/scenario/deduplication modules remain intentionally unfinished.
+Full analysis was verified locally against the official prepared files. The
+generated snapshot passed the backend `AnalysisSnapshot` and `AnalysisStore`
+checks, including opportunity-to-job references. The current analytics branch
+does not contain the backend package, so the in-tree backend integration test
+skips until the branches are merged. Do not commit generated analysis or data.
 
-Verification at handoff: 29 tests passed and one current-branch backend test
-skipped. Separately, a generated summary-only snapshot passed the actual
-`origin/backend` AnalysisSnapshot models using temporary synthetic parquet
-input. Whitespace checks passed. No official data or generated analysis was
-added to the repository.
+## Full evidence-backed analysis
+
+The summary-only command above remains available. To build the four ranked
+opportunities from official prepared data and generated MantisGrid findings:
+
+```bash
+python -m analytics.build_analysis \
+  --data-dir "/absolute/path/to/hackathon-2026-official/track-2/data" \
+  --with-opportunities
+```
+
+This requires `prepped/jobs.parquet`, `prepped/gpus.parquet`, and
+`synthetic/findings.json`. You can override each with `--jobs-path`,
+`--gpus-path`, or `--findings-path`. Read `ANALYSIS_METHOD.md` for the filters,
+scenario assumptions, deduplication rule, and caveats. A true API is not needed
+to generate this deterministic snapshot; the product backend serves it through
+`/api/*` after integration.

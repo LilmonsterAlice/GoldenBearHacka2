@@ -11,7 +11,8 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from analytics.config import DataPaths, PROJECT_ROOT, project_path
-from analytics.load_data import load_jobs
+from analytics.load_data import load_findings, load_gpus, load_jobs
+from analytics.opportunity_analysis import build_opportunities
 from analytics.outcomes import calculate_outcomes, validate_summary_jobs
 from analytics.pricing import PRICE_BOOK_VERSION, PRICE_PER_GPU_HOUR, gpu_hours_to_usd, validate_price
 
@@ -61,18 +62,29 @@ def write_analysis(analysis: dict, output_path: str | Path) -> Path:
     return destination
 
 
-def build_analysis(*, jobs_path=None, data_dir=None, output_path=None, price_per_gpu_hour=PRICE_PER_GPU_HOUR, price_book_version=None):
-    selected = project_path(jobs_path) if jobs_path is not None else DataPaths.resolve(data_dir=data_dir).jobs
+def build_analysis(*, jobs_path=None, gpus_path=None, findings_path=None, data_dir=None, output_path=None,
+                   price_per_gpu_hour=PRICE_PER_GPU_HOUR, price_book_version=None, with_opportunities=False):
+    paths = DataPaths.resolve(data_dir=data_dir, jobs_path=jobs_path, gpus_path=gpus_path, findings_path=findings_path)
+    selected = paths.jobs
     destination = project_path(output_path if output_path is not None else OUTPUT_PATH)
     if selected == destination:
         raise ValueError("Analysis output must not overwrite the input jobs file")
     jobs = load_jobs(selected)
+    summary = build_summary(jobs, price_per_gpu_hour=price_per_gpu_hour, price_book_version=price_book_version)
     analysis = {
-        "summary": build_summary(jobs, price_per_gpu_hour=price_per_gpu_hour, price_book_version=price_book_version),
+        "summary": summary,
         "opportunities": [],
         "jobs": [],
         "metadata": {"producer": "cutscope-analytics", "stage": "summary-only"},
     }
+    if with_opportunities:
+        opportunities, evidence_jobs, audit = build_opportunities(
+            validate_summary_jobs(jobs), load_gpus(paths.gpus), load_findings(paths.findings),
+            price_per_gpu_hour=summary["price_per_gpu_hour"], total_gpu_hours=summary["total_gpu_hours"],
+        )
+        analysis["opportunities"] = opportunities
+        analysis["jobs"] = evidence_jobs
+        analysis["metadata"] = {"producer": "cutscope-analytics", "stage": "evidence-backed", **audit}
     write_analysis(analysis, destination)
     return analysis
 
@@ -81,21 +93,26 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", help="Your existing official data directory (or CUTSCOPE_DATA_DIR)")
     parser.add_argument("--jobs-path", help="Explicit prepared jobs parquet (or CUTSCOPE_JOBS_PATH)")
+    parser.add_argument("--gpus-path", help="Explicit per-card GPU parquet (or CUTSCOPE_GPUS_PATH)")
+    parser.add_argument("--findings-path", help="Explicit findings JSON (or CUTSCOPE_FINDINGS_PATH)")
+    parser.add_argument("--with-opportunities", action="store_true", help="Build four evidence-backed opportunity estimates")
     parser.add_argument("--output", default=str(OUTPUT_PATH), help="Output JSON path; default generated/analysis.json")
     parser.add_argument("--price-per-gpu-hour", type=float, default=PRICE_PER_GPU_HOUR)
     parser.add_argument("--price-book-version")
     parser.add_argument("--check-data", action="store_true", help="Check jobs file/schema without generating output")
     args = parser.parse_args(argv)
     try:
-        paths = DataPaths.resolve(data_dir=args.data_dir, jobs_path=args.jobs_path)
+        paths = DataPaths.resolve(data_dir=args.data_dir, jobs_path=args.jobs_path,
+                                  gpus_path=args.gpus_path, findings_path=args.findings_path)
         if args.check_data:
             jobs = validate_summary_jobs(load_jobs(paths.jobs))
             print(f"Jobs data ready: {len(jobs)} rows. No output written.")
         else:
-            build_analysis(jobs_path=paths.jobs, output_path=args.output,
-                           price_per_gpu_hour=args.price_per_gpu_hour, price_book_version=args.price_book_version)
-            print(f"Summary-only analysis written to: {project_path(args.output)}")
-            print("Opportunities/evidence are not generated yet; Person 1 can extend these modules.")
+            result = build_analysis(jobs_path=paths.jobs, gpus_path=paths.gpus, findings_path=paths.findings,
+                                    output_path=args.output, with_opportunities=args.with_opportunities,
+                                    price_per_gpu_hour=args.price_per_gpu_hour, price_book_version=args.price_book_version)
+            print(f"Analysis written to: {project_path(args.output)}")
+            print(f"{len(result['opportunities'])} opportunities; {len(result['jobs'])} evidence jobs")
     except (OSError, ValueError, ImportError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
