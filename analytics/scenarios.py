@@ -5,6 +5,23 @@ import math
 
 
 @dataclass(frozen=True)
+class CpuPlacementPolicy:
+    point_realization: float = .5
+    incremental_cpu_cost_per_job_hour: float | None = None
+    cpu_runtime_multiplier: float = 1.
+
+    def __post_init__(self):
+        if not math.isfinite(self.point_realization) or not 0 <= self.point_realization <= 1:
+            raise ValueError("CPU-placement realization must be between zero and one")
+        if self.incremental_cpu_cost_per_job_hour is not None and (
+            not math.isfinite(self.incremental_cpu_cost_per_job_hour) or self.incremental_cpu_cost_per_job_hour < 0
+        ):
+            raise ValueError("Incremental CPU cost must be finite and nonnegative, or unknown")
+        if not math.isfinite(self.cpu_runtime_multiplier) or self.cpu_runtime_multiplier <= 0:
+            raise ValueError("CPU runtime multiplier must be finite and positive")
+
+
+@dataclass(frozen=True)
 class IdlePolicy:
     retained_hours: float = 4.0
     point_realization: float = 0.5

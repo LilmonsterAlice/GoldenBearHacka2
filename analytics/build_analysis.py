@@ -8,11 +8,13 @@ from analytics.exploration import audit_data, candidate_diagnostics
 from analytics.load_data import load_official_data
 from analytics.outcomes import build_summary
 from analytics.pricing import Pricing
-from analytics.scenarios import IdlePolicy
+from analytics.scenarios import IdlePolicy, CpuPlacementPolicy
+from analytics.deduplication import PrimaryLedger
 from analytics.opportunities.idle_interactive import build_idle_opportunity
+from analytics.opportunities.gpu_not_needed import build_gpu_not_needed_opportunity
 
 
-def build_snapshot(data, pricing=Pricing(), idle_policy=IdlePolicy()):
+def build_snapshot(data, pricing=Pricing(), idle_policy=IdlePolicy(), cpu_policy=CpuPlacementPolicy()):
     audit = audit_data(data)
     for key in ("duplicate_gpu_keys", "orphan_gpu_rows", "unmatched_job_findings",
                 "gpu_count_mismatch_jobs", "job_card_hours_mismatch_jobs", "invalid_card_hours_rows"):
@@ -20,10 +22,16 @@ def build_snapshot(data, pricing=Pricing(), idle_policy=IdlePolicy()):
             raise ValueError(f"Data integrity failure: {key}={audit[key]}")
     cohorts, overlaps = candidate_diagnostics(data)
     summary = build_summary(data.jobs, pricing)
-    opportunity, jobs, idle_analysis = build_idle_opportunity(data, pricing, summary["total_gpu_hours"], idle_policy)
-    return {"summary": summary, "opportunities": [opportunity], "jobs": jobs,
-            "metadata": {"producer": "CutScope analytics2 idle v2", "stage": "idle-interactive",
+    ledger = PrimaryLedger()
+    opportunity, jobs, idle_analysis = build_idle_opportunity(data, pricing, summary["total_gpu_hours"], idle_policy, ledger)
+    cpu_opportunity, cpu_jobs, cpu_analysis = build_gpu_not_needed_opportunity(data, pricing, summary["total_gpu_hours"], cpu_policy, ledger)
+    opportunities = sorted([opportunity, cpu_opportunity], key=lambda row: (-row["savings_usd_high"], row["id"]))
+    return {"summary": summary, "opportunities": opportunities, "jobs": jobs + cpu_jobs,
+            "metadata": {"producer": "CutScope analytics2 placement v3", "stage": "gpu-not-needed",
                          "idle_analysis": idle_analysis,
+                         "gpu_not_needed_analysis": cpu_analysis, "primary_ledger": ledger.records(),
+                         "attribution_priority": ["idle-interactive", "gpu-not-needed"],
+                         "ranking_basis": "Descending modeled gross high GPU resource value; equal unknown confidence/medium qualitative risk. Ranking is not guaranteed net benefit.",
                          "provenance": data.provenance, "data_quality": audit,
                          "candidate_diagnostics": cohorts.to_dict(orient="records"),
                          "candidate_overlap": overlaps.to_dict(orient="records"),
@@ -32,7 +40,7 @@ def build_snapshot(data, pricing=Pricing(), idle_policy=IdlePolicy()):
                          "limitations": ["Candidate cohort hours are consumption, not recoverable savings; do not sum overlapping cohorts.",
                                          "Time-resolved utilization and exact idle-onset timestamps are not available in these summary tables.",
                                          "Idle reclaim is a session-cap proxy with uncalibrated realization; actual confidence and downside USD remain unknown.",
-                                         "Only one primary opportunity is implemented; whole-job ownership conservatively prevents overlap."]}}
+                                         "Two opportunities use conservative whole-job ownership; incremental CPU costs and net placement benefit are unknown unless configured."]}}
 
 
 def main():
@@ -43,14 +51,18 @@ def main():
     parser.add_argument("--price-book-version", default="cutscope-assumption-v1")
     parser.add_argument("--idle-retained-hours", type=float, default=4.)
     parser.add_argument("--idle-point-realization", type=float, default=.5)
+    parser.add_argument("--cpu-point-realization", type=float, default=.5)
+    parser.add_argument("--incremental-cpu-cost-per-job-hour", type=float)
+    parser.add_argument("--cpu-runtime-multiplier", type=float, default=1.)
     args = parser.parse_args()
     pricing = Pricing(args.price, args.price_book_version)
     policy = IdlePolicy(args.idle_retained_hours, args.idle_point_realization)
-    snapshot = build_snapshot(load_official_data(args.data_dir), pricing, policy)
+    cpu_policy = CpuPlacementPolicy(args.cpu_point_realization, args.incremental_cpu_cost_per_job_hour, args.cpu_runtime_multiplier)
+    snapshot = build_snapshot(load_official_data(args.data_dir), pricing, policy, cpu_policy)
     encoded = json.dumps(snapshot, indent=2, allow_nan=False) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(encoded)
-    print(f"Wrote {args.output}: verified baseline plus modeled idle scenarios for {len(snapshot['jobs']):,} jobs; not verified cash savings.")
+    print(f"Wrote {args.output}: {len(snapshot['opportunities'])} modeled opportunities; {len(snapshot['jobs']):,} evidence jobs; not verified cash savings.")
 
 
 if __name__ == "__main__":

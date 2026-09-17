@@ -43,6 +43,23 @@ cost. Both notebooks remain output-free source templates.
 
 ## Generate the backend snapshot
 
+GPU-not-needed exploration is in `analytics/notebooks/03_gpu_not_needed.ipynb`.
+It reproduces the completed zero-compute rule, examines GPU-memory evidence,
+excludes jobs already owned by idle-interactive, and explores CPU cost/runtime
+sensitivity. The snapshot now includes both opportunities and their full job
+records, ranked by gross modeled high GPU resource value.
+
+CPU-placement point realization defaults to 50%. Net benefit remains unknown
+unless incremental total CPU cost per job-hour is supplied. For example:
+
+```bash
+.venv/bin/python -m analytics.build_analysis --incremental-cpu-cost-per-job-hour 1 --cpu-runtime-multiplier 1.5 --cpu-point-realization 0.5 --output generated/analysis.cpu-sensitivity.json
+```
+
+This rate is hypothetical incremental USD/job-hour, not USD/core-hour. It
+changes producer-only net scenarios; public monetary fields remain explicitly
+gross GPU resource value. Negative modeled net outcomes are retained.
+
 ```bash
 .venv/bin/python -m analytics.build_analysis
 .venv/bin/python -m backend.validate_analysis generated/analysis.json --check-api
@@ -55,7 +72,7 @@ Optional arguments:
 ```
 
 The exporter uses the existing `summary`, `opportunities`, `jobs`, and
-`metadata` envelope. It now includes one `idle-interactive` opportunity, every
+`metadata` envelope. It includes `idle-interactive` and `gpu-not-needed`, every
 affected job record, and original finding evidence. Point estimates, policy
 parameters, exclusions, replay sensitivity and the primary ledger live in
 metadata. Backend APIs do not expose that producer metadata; method text also
@@ -93,7 +110,7 @@ files, including resource and edge tables that this baseline does not consume.
 ## Next milestone
 
 Review the policy with operational feedback and inspect the other opportunities.
-Expand GPU-not-needed, slow cancel and card imbalance through the same primary
+Expand slow cancel and card imbalance through the same primary
 ledger; whole-job ownership currently prevents overlap conservatively. Their
 modules remain unimplemented. No enforcement is deployed by this analysis.
 Keep the shared API unchanged; review any required field change with Persons

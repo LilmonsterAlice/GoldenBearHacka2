@@ -27,3 +27,7 @@ class PrimaryLedger:
 
     def records(self):
         return [self.rows[key] for key in sorted(self.rows)]
+
+    def owner(self, job_id):
+        row = self.rows.get(job_id)
+        return None if row is None else row["primary_opportunity_id"]

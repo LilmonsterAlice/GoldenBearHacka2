@@ -165,3 +165,49 @@ and downside USD, method/basis/caveats, complete job references and findings.
 Structured point values, policy parameters, exclusions, replay sensitivity and
 the ledger live in file-only metadata; method text also states the point
 assumption and result. No shared API fields or endpoints have changed.
+
+## analytics2 CPU-placement model v3
+
+Recompute `rules::gpu-not-needed`: final state COMPLETED, job-average and peak
+SM exactly zero, and measured GPU-hours >1. Check the official finding ID set
+in notebook 03. Require matching explicitly non-synthetic evidence, exactly one
+attempt, complete zero-peak cards, positive valid allocation measurements,
+scheduler formula agreement and measured/scheduler discrepancy within 10%.
+Exclude cards whose measured consumption exceeds final walltime by more than
+10%. Unknown qualifying evidence is excluded with a recorded reason.
+
+Idle-interactive receives primary ownership first to preserve the prior stage.
+Any job already owned by it is excluded entirely from GPU-not-needed reclaim;
+supporting GPU-not-needed findings remain on the idle job. Allocation ownership
+is independent of display order. Rank the two cards by descending gross high
+GPU resource value; equal unknown confidence and medium qualitative risk do
+not establish a ranking by net benefit.
+
+For each additional eligible job, high=min(measured hours, scheduler allocation
+hours), point=high times the configured realization fraction (default 50%), and
+low=0 guaranteed reclaim. The whole allocation is modeled as moved to CPU
+placement. This is not proof of portability or successful migration. Jobs may
+initialize CUDA or hold GPU memory while reporting zero compute. Report GPU
+memory observations and validate dependencies and output equivalence in a pilot.
+
+API monetary fields retain the existing interpretation of gross freed-GPU
+resource value at the snapshot rate; method/title/caveats explicitly identify
+this as gross. Net benefit remains unknown by default. Optional producer
+metadata models total incremental CPU placement cost as observed job walltime
+times a positive assumed CPU runtime multiplier times a nonnegative incremental
+USD/job-hour rate. This is a total job rate, not USD/core-hour, and should cover
+only additional cost relative to baseline. Full-adoption net=gross GPU value
+minus this cost; point scales both by realization; low means no migration and
+zero incremental cost. Negative net outcomes are retained. Full adoption is an
+adoption scenario, not an upper bound on net benefit. Migration effort, CPU queue
+constraints, engineer time and business loss remain unpriced.
+
+Actual numeric confidence and cost-if-wrong USD remain null. Preserve original
+GPU requests and checkpoints, validate representative outputs and runtimes, and
+stop the pilot on regressions. `reversible=false` reflects that a request rollback
+cannot undo missed deadlines or already lost work. No enforcement or placement
+change is performed by the analytics code.
+
+Two opportunities now share one primary ledger, complete unique job evidence,
+and low/high public values. Structured point/net scenarios, CPU assumptions and
+exclusions remain file-only metadata. No shared API fields or endpoints change.
